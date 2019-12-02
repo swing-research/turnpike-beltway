@@ -1,0 +1,13 @@
+num_thread 6
+num_smp 100
+max_ite 500
+max_sg_ite 100
+min_space_unit 0.00001
+sigma 0.00007
+tau 0.00021
+perturb_std 0.01
+sg_tol 1e-6
+step_ori 1e-5
+bkt_rate 0.95
+step_thd 1e-16
+cvg_thd 1e-7
