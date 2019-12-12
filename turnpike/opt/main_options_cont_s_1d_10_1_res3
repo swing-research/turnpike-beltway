@@ -1,5 +1,6 @@
 num_thread 6
 num_smp 10
+init_type 1
 max_ite 1000
 max_sg_ite 100
 min_space_unit 0.001

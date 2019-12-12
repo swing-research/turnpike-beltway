@@ -1,5 +1,6 @@
 int num_raw_uq_distance = 0;
 int num_thread = 0;
+int init_type = 0;
 int num_smp = 0;
 int max_ite = 0;
 double max_sg_ite = 0;

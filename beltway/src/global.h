@@ -4,6 +4,7 @@
 	// declair external variables
 	extern int num_raw_uq_distance;
 	extern int num_thread;
+	extern int init_type;
     extern int num_smp;
     extern int max_ite;
     extern int max_sg_ite;

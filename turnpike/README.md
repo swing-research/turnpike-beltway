@@ -57,6 +57,7 @@ Take the option file `opt/main_options_cont_s_1d_10_1_res1` for example, it cont
 ```
     num_thread      --  The number of threads used for computation
     num_smp         --  The number of points to be recovered
+    init_type       --  The initialization type: "1" for spectral initialization, "2" for random initialization, "3" for uniform initialization
     max_ite         --  The maximum number of iterations for the projected gradient descent
     max_sg_ite      --  The maximum number of iterations when computing the spectral initializer using the power method
     min_space_unit  --  The quantization step chosen to discretize the 1D domain space, usually set to a tenth of the minimum distance between two differnet points

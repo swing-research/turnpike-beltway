@@ -315,133 +315,284 @@ void uDGP::SetMeasureMatrix() {
 void uDGP::Initialization() {
     
     smp_pos_init = VectorXd::Zero(M);
+    
+    if (init_type==1) { // initialization with leading eigenvector
 
-    // Compute the two anchor points
-    for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end(); ite++) {
-        int distance_val_tmp = ite->first;
-        if ( ( distance_val_tmp >= (M-round(3*sigma/min_space_unit)) ) && ( distance_val_tmp <= M-1 ) ) {
-            anchor_one_seq[ite->first] += NormalCdf( (distance_val_tmp+0.5)*min_space_unit, M*min_space_unit, sigma/sqrt(2)) - NormalCdf( (distance_val_tmp-0.5)*min_space_unit, M*min_space_unit, sigma/sqrt(2) );
-        } else {
-            anchor_one_seq[ite->first] += NormalCdf( (distance_val_tmp+0.5)*min_space_unit, anchor_one*min_space_unit, sigma/sqrt(2)) - NormalCdf( (distance_val_tmp-0.5)*min_space_unit, anchor_one*min_space_unit, sigma/sqrt(2) );
+        // Compute the two anchor points
+        for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end(); ite++) {
+            int distance_val_tmp = ite->first;
+            if ( ( distance_val_tmp >= (M-round(3*sigma/min_space_unit)) ) && ( distance_val_tmp <= M-1 ) ) {
+                anchor_one_seq[ite->first] += NormalCdf( (distance_val_tmp+0.5)*min_space_unit, M*min_space_unit, sigma/sqrt(2)) - NormalCdf( (distance_val_tmp-0.5)*min_space_unit, M*min_space_unit, sigma/sqrt(2) );
+            } else {
+                anchor_one_seq[ite->first] += NormalCdf( (distance_val_tmp+0.5)*min_space_unit, anchor_one*min_space_unit, sigma/sqrt(2)) - NormalCdf( (distance_val_tmp-0.5)*min_space_unit, anchor_one*min_space_unit, sigma/sqrt(2) );
+            }
         }
-    }
-    
-    for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end(); ite++) {
-        int distance_val_tmp = ite->first;
-        if ( (distance_val_tmp >= 0) && (distance_val_tmp<=round(3*sigma/min_space_unit)) ) {
-            anchor_two_seq[ite->first] += NormalCdf( (M+distance_val_tmp+0.5)*min_space_unit, anchor_two*min_space_unit, sigma/sqrt(2)) - NormalCdf( (M+distance_val_tmp-0.5)*min_space_unit, anchor_two*min_space_unit, sigma/sqrt(2) );
-        } else {
-            anchor_two_seq[ite->first] += NormalCdf( (distance_val_tmp+0.5)*min_space_unit, anchor_two*min_space_unit, sigma/sqrt(2)) - NormalCdf( (distance_val_tmp-0.5)*min_space_unit, anchor_two*min_space_unit, sigma/sqrt(2) );
+        
+        for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end(); ite++) {
+            int distance_val_tmp = ite->first;
+            if ( (distance_val_tmp >= 0) && (distance_val_tmp<=round(3*sigma/min_space_unit)) ) {
+                anchor_two_seq[ite->first] += NormalCdf( (M+distance_val_tmp+0.5)*min_space_unit, anchor_two*min_space_unit, sigma/sqrt(2)) - NormalCdf( (M+distance_val_tmp-0.5)*min_space_unit, anchor_two*min_space_unit, sigma/sqrt(2) );
+            } else {
+                anchor_two_seq[ite->first] += NormalCdf( (distance_val_tmp+0.5)*min_space_unit, anchor_two*min_space_unit, sigma/sqrt(2)) - NormalCdf( (distance_val_tmp-0.5)*min_space_unit, anchor_two*min_space_unit, sigma/sqrt(2) );
+            }
         }
-    }
+            
+        // use the probability vector as the initializer
+        int row_idx, col_idx;
         
-    // use the probability vector as the initializer
-    int row_idx, col_idx;
-    
-    for (int i=0; i<all_distance.size(); i++) {
-    
-        VectorXd smp_pos_init_tmp = VectorXd::Zero(M);
-        smp_pos_init_tmp.segment(0, M-all_distance[i]).array() += valid_idx_pos.segment(0, M-all_distance[i]).array() * valid_idx_pos.segment(all_distance[i], M-all_distance[i]).array();
-        smp_pos_init_tmp.segment(M-all_distance[i], all_distance[i]).array() += valid_idx_pos.segment(M-all_distance[i], all_distance[i]).array() * valid_idx_pos.segment(0, all_distance[i]).array();
-        
-        D_mat_norm[all_distance[i]] = sqrt(smp_pos_init_tmp.sum());
-
-        
-        smp_pos_init_tmp *= all_distribution[all_distance[i]] / smp_pos_init_tmp.sum();
-        smp_pos_init += smp_pos_init_tmp;
-    }
-    
-    // Put the two anchor points
-    for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end(); ite++) {
-        smp_pos_init[ite->first] = 0;
-    }
-    for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end(); ite++) {
-        smp_pos_init[ite->first] = 0;
-    }
-    for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end();ite++) {
-        smp_pos_init[ite->first] += anchor_one_seq[ite->first];
-    }
-    for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end();ite++) {
-        smp_pos_init[ite->first] += anchor_two_seq[ite->first];
-    }
-
-    
-    // Set the positions corresponding to the smaller distance between the two anchor points to zero if smp_pos_init is not initialized with zeros
-    
-    // Sum up the points other than the two anchor points and then normalize   anchor_two-round(3*sigma/min_space_unit)-1
-    double smp_pos_init_exclude_sum = smp_pos_init.segment( (anchor_one+round(3*sigma/min_space_unit)+1), anchor_two-anchor_one-round(6*sigma/min_space_unit)-1 ).sum();
-    smp_pos_init.segment( (anchor_one+round(3*sigma/min_space_unit)+1), anchor_two-anchor_one-round(6*sigma/min_space_unit)-1 ) = smp_pos_init.segment( (anchor_one+round(3*sigma/min_space_unit)+1), anchor_two-anchor_one-round(6*sigma/min_space_unit)-1 ) / smp_pos_init_exclude_sum * (num_smp-2);
-    
-   
-    obj_val = ComputeObjFun(smp_pos_init);
-    cout<<"Obj_val: "<<obj_val<<endl;
-    
-    // use power method to compute the singular vector
-    for (int ite=0; ite<max_sg_ite; ite++) {
-        VectorXd smp_pos_init_pre = smp_pos_init;
-        VectorXd smp_pos_init_tmp = VectorXd::Zero(M);
         for (int i=0; i<all_distance.size(); i++) {
-            smp_pos_init_tmp.segment(0, M-all_distance[i]) += all_distribution[all_distance[i]] / pow(D_mat_norm[all_distance[i]], 2) * smp_pos_init_pre.segment(all_distance[i], M-all_distance[i]);
-            smp_pos_init_tmp.segment(M-all_distance[i], all_distance[i]) += all_distribution[all_distance[i]] / pow(D_mat_norm[all_distance[i]], 2) * smp_pos_init_pre.segment(0, all_distance[i]);
+        
+            VectorXd smp_pos_init_tmp = VectorXd::Zero(M);
+            smp_pos_init_tmp.segment(0, M-all_distance[i]).array() += valid_idx_pos.segment(0, M-all_distance[i]).array() * valid_idx_pos.segment(all_distance[i], M-all_distance[i]).array();
+            smp_pos_init_tmp.segment(M-all_distance[i], all_distance[i]).array() += valid_idx_pos.segment(M-all_distance[i], all_distance[i]).array() * valid_idx_pos.segment(0, all_distance[i]).array();
+            
+            D_mat_norm[all_distance[i]] = sqrt(smp_pos_init_tmp.sum());
 
-            smp_pos_init_tmp.segment(0, all_distance[i]) += all_distribution[all_distance[i]] / pow(D_mat_norm[all_distance[i]], 2) * smp_pos_init_pre.segment(M-all_distance[i], all_distance[i]);            
-            smp_pos_init_tmp.segment(all_distance[i], M-all_distance[i]) += all_distribution[all_distance[i]] / pow(D_mat_norm[all_distance[i]], 2) * smp_pos_init_pre.segment(0, M-all_distance[i]);  
+            
+            smp_pos_init_tmp *= all_distribution[all_distance[i]] / smp_pos_init_tmp.sum();
+            smp_pos_init += smp_pos_init_tmp;
         }
         
-        smp_pos_init = VectorXd::Zero(M);
-
-        for (int i=0; i<valid_idx_vec.size(); i++) {
-            smp_pos_init(valid_idx_vec[i]) = smp_pos_init_tmp(valid_idx_vec[i]);
+        // Put the two anchor points
+        for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end(); ite++) {
+            smp_pos_init[ite->first] = 0;
         }
-        double smp_pos_init_norm = smp_pos_init.norm();
-        smp_pos_init = smp_pos_init/smp_pos_init_norm;
-        double sg_cvg_val = (smp_pos_init-smp_pos_init_pre).norm();
-        cout<<ite<<" "<<sg_cvg_val<<endl;
+        for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end(); ite++) {
+            smp_pos_init[ite->first] = 0;
+        }
+        for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end();ite++) {
+            smp_pos_init[ite->first] += anchor_one_seq[ite->first];
+        }
+        for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end();ite++) {
+            smp_pos_init[ite->first] += anchor_two_seq[ite->first];
+        }
+
         
-        if (sg_cvg_val<sg_tol) {
-            cout<<"Eig_iteration: "<<ite<<endl;
-            break;
+        // Set the positions corresponding to the smaller distance between the two anchor points to zero if smp_pos_init is not initialized with zeros
+        
+        // Sum up the points other than the two anchor points and then normalize   anchor_two-round(3*sigma/min_space_unit)-1
+        double smp_pos_init_exclude_sum = smp_pos_init.segment( (anchor_one+round(3*sigma/min_space_unit)+1), anchor_two-anchor_one-round(6*sigma/min_space_unit)-1 ).sum();
+        smp_pos_init.segment( (anchor_one+round(3*sigma/min_space_unit)+1), anchor_two-anchor_one-round(6*sigma/min_space_unit)-1 ) = smp_pos_init.segment( (anchor_one+round(3*sigma/min_space_unit)+1), anchor_two-anchor_one-round(6*sigma/min_space_unit)-1 ) / smp_pos_init_exclude_sum * (num_smp-2);
+        
+       
+        obj_val = ComputeObjFun(smp_pos_init);
+        cout<<"Obj_val: "<<obj_val<<endl;
+        
+        // use power method to compute the singular vector
+        for (int ite=0; ite<max_sg_ite; ite++) {
+            VectorXd smp_pos_init_pre = smp_pos_init;
+            VectorXd smp_pos_init_tmp = VectorXd::Zero(M);
+            for (int i=0; i<all_distance.size(); i++) {
+                smp_pos_init_tmp.segment(0, M-all_distance[i]) += all_distribution[all_distance[i]] / pow(D_mat_norm[all_distance[i]], 2) * smp_pos_init_pre.segment(all_distance[i], M-all_distance[i]);
+                smp_pos_init_tmp.segment(M-all_distance[i], all_distance[i]) += all_distribution[all_distance[i]] / pow(D_mat_norm[all_distance[i]], 2) * smp_pos_init_pre.segment(0, all_distance[i]);
+
+                smp_pos_init_tmp.segment(0, all_distance[i]) += all_distribution[all_distance[i]] / pow(D_mat_norm[all_distance[i]], 2) * smp_pos_init_pre.segment(M-all_distance[i], all_distance[i]);            
+                smp_pos_init_tmp.segment(all_distance[i], M-all_distance[i]) += all_distribution[all_distance[i]] / pow(D_mat_norm[all_distance[i]], 2) * smp_pos_init_pre.segment(0, M-all_distance[i]);  
+            }
+            
+            smp_pos_init = VectorXd::Zero(M);
+
+            for (int i=0; i<valid_idx_vec.size(); i++) {
+                smp_pos_init(valid_idx_vec[i]) = smp_pos_init_tmp(valid_idx_vec[i]);
+            }
+            double smp_pos_init_norm = smp_pos_init.norm();
+            smp_pos_init = smp_pos_init/smp_pos_init_norm;
+            double sg_cvg_val = (smp_pos_init-smp_pos_init_pre).norm();
+            cout<<ite<<" "<<sg_cvg_val<<endl;
+            
+            if (sg_cvg_val<sg_tol) {
+                cout<<"Eig_iteration: "<<ite<<endl;
+                break;
+            }
         }
-    }
 
-    smp_pos_init = smp_pos_init * sqrt(num_smp*1.0);
+        smp_pos_init = smp_pos_init * sqrt(num_smp*1.0);
 
-    // break even
-    default_random_engine generator;
-    normal_distribution<double> distribution(0, perturb_std);
-    for (int i=0; i<M; i++) {
-        smp_pos_init(i) = smp_pos_init(i) * (1+distribution(generator));
-    }
+        // break even
+        default_random_engine generator;
+        normal_distribution<double> distribution(0, perturb_std);
+        for (int i=0; i<M; i++) {
+            smp_pos_init(i) = smp_pos_init(i) * (1+distribution(generator));
+        }
 
-    // map the initialization onto the convex set
-    // Put the two anchor points
-    for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end();     ite++) {
-        smp_pos_init[ite->first] = 0;
-    }
-    for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end();     ite++) {
-        smp_pos_init[ite->first] = 0;
-    }
-    for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end();     ite++) {
-        smp_pos_init[ite->first] += anchor_one_seq[ite->first];
-    }
-    for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end();     ite++) {
-        smp_pos_init[ite->first] += anchor_two_seq[ite->first];
-    }
+        // map the initialization onto the convex set
+        // Put the two anchor points
+        for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end();     ite++) {
+            smp_pos_init[ite->first] = 0;
+        }
+        for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end();     ite++) {
+            smp_pos_init[ite->first] = 0;
+        }
+        for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end();     ite++) {
+            smp_pos_init[ite->first] += anchor_one_seq[ite->first];
+        }
+        for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end();     ite++) {
+            smp_pos_init[ite->first] += anchor_two_seq[ite->first];
+        }
+        
+
+        // Project on to the l1-ball with box constraints
+        VectorXd smp_pos_seg_tmp = VectorXd::Zero(valid_idx_vec_exclude.size());
+        for (int i=0; i<valid_idx_vec_exclude.size(); i++) {
+            smp_pos_seg_tmp(i) = smp_pos_init(valid_idx_vec_exclude[i]);
+        }
+
+        smp_pos_seg_tmp = ProjectOntoCvxSet(smp_pos_seg_tmp, num_smp-2);
+        for (int i=0; i<valid_idx_vec_exclude.size(); i++) {
+            smp_pos_init(valid_idx_vec_exclude[i]) = smp_pos_seg_tmp(i);
+        }
+
+        obj_val = ComputeObjFun(smp_pos_init);
+        cout<<"Obj val: "<<obj_val<<endl;
     
+    } else if (init_type==2) {  // initialize with random vector
+    
+        default_random_engine generator;
+        normal_distribution<double> distribution(0, perturb_std);
+        for (int i=0; i<M; i++) {
+            smp_pos_init(i) = abs(distribution(generator));
+        }
 
-    // Project on to the l1-ball with box constraints
-    VectorXd smp_pos_seg_tmp = VectorXd::Zero(valid_idx_vec_exclude.size());
-    for (int i=0; i<valid_idx_vec_exclude.size(); i++) {
-        smp_pos_seg_tmp(i) = smp_pos_init(valid_idx_vec_exclude[i]);
+        // Compute the two anchor points
+        for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end(); ite++) {
+            int distance_val_tmp = ite->first;
+            if ( ( distance_val_tmp >= (M-round(3*sigma/min_space_unit)) ) && ( distance_val_tmp <= M-1 ) ) {
+                anchor_one_seq[ite->first] += NormalCdf( (distance_val_tmp+0.5)*min_space_unit, M*min_space_unit, sigma/sqrt(2)) - NormalCdf( (distance_val_tmp-0.5)*min_space_unit, M*min_space_unit, sigma/sqrt(2) );
+            } else {
+                anchor_one_seq[ite->first] += NormalCdf( (distance_val_tmp+0.5)*min_space_unit, anchor_one*min_space_unit, sigma/sqrt(2)) - NormalCdf( (distance_val_tmp-0.5)*min_space_unit, anchor_one*min_space_unit, sigma/sqrt(2) );
+            }
+        }
+
+        for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end(); ite++) {
+            int distance_val_tmp = ite->first;
+            if ( (distance_val_tmp >= 0) && (distance_val_tmp<=round(3*sigma/min_space_unit)) ) {
+                anchor_two_seq[ite->first] += NormalCdf( (M+distance_val_tmp+0.5)*min_space_unit, anchor_two*min_space_unit, sigma/sqrt(2)) - NormalCdf( (M+distance_val_tmp-0.5)*min_space_unit, anchor_two*min_space_unit, sigma/sqrt(2) );
+            } else {
+                anchor_two_seq[ite->first] += NormalCdf( (distance_val_tmp+0.5)*min_space_unit, anchor_two*min_space_unit, sigma/sqrt(2)) - NormalCdf( (distance_val_tmp-0.5)*min_space_unit, anchor_two*min_space_unit, sigma/sqrt(2) );
+            }
+        }
+
+        // Put the two anchor points
+        for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end(); ite++) {
+            smp_pos_init[ite->first] = 0;
+        }
+        for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end(); ite++) {
+            smp_pos_init[ite->first] = 0;
+        }
+        for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end();ite++) {
+            smp_pos_init[ite->first] += anchor_one_seq[ite->first];
+        }
+        for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end();ite++) {
+            smp_pos_init[ite->first] += anchor_two_seq[ite->first];
+        }
+
+
+        // map the initialization onto the convex set
+        // Put the two anchor points
+        for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end();     ite++) {
+            smp_pos_init[ite->first] = 0;
+        }
+        for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end();     ite++) {
+            smp_pos_init[ite->first] = 0;
+        }
+        for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end();     ite++) {
+            smp_pos_init[ite->first] += anchor_one_seq[ite->first];
+        }
+        for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end();     ite++) {
+            smp_pos_init[ite->first] += anchor_two_seq[ite->first];
+        }
+
+        // Project on to the l1-ball with box constraints
+        VectorXd smp_pos_seg_tmp = VectorXd::Zero(valid_idx_vec_exclude.size());
+        for (int i=0; i<valid_idx_vec_exclude.size(); i++) {
+            smp_pos_seg_tmp(i) = smp_pos_init(valid_idx_vec_exclude[i]);
+        }
+
+        smp_pos_seg_tmp = ProjectOntoCvxSet(smp_pos_seg_tmp, num_smp-2);
+        for (int i=0; i<valid_idx_vec_exclude.size(); i++) {
+            smp_pos_init(valid_idx_vec_exclude[i]) = smp_pos_seg_tmp(i);
+        }
+
+        obj_val = ComputeObjFun(smp_pos_init);
+        cout<<"Obj val: "<<obj_val<<endl;
+    
+    } else if (init_type==3) {  // initialize with uniform vector
+
+        smp_pos_init = VectorXd::Ones(M);
+
+        // Compute the two anchor points
+        for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end(); ite++) {
+            int distance_val_tmp = ite->first;
+            if ( ( distance_val_tmp >= (M-round(3*sigma/min_space_unit)) ) && ( distance_val_tmp <= M-1 ) ) {
+                anchor_one_seq[ite->first] += NormalCdf( (distance_val_tmp+0.5)*min_space_unit, M*min_space_unit, sigma/sqrt(2)) - NormalCdf( (distance_val_tmp-0.5)*min_space_unit, M*min_space_unit, sigma/sqrt(2) );
+            } else {
+                anchor_one_seq[ite->first] += NormalCdf( (distance_val_tmp+0.5)*min_space_unit, anchor_one*min_space_unit, sigma/sqrt(2)) - NormalCdf( (distance_val_tmp-0.5)*min_space_unit, anchor_one*min_space_unit, sigma/sqrt(2) );
+            }
+        }
+
+        for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end(); ite++) {
+            int distance_val_tmp = ite->first;
+            if ( (distance_val_tmp >= 0) && (distance_val_tmp<=round(3*sigma/min_space_unit)) ) {
+                anchor_two_seq[ite->first] += NormalCdf( (M+distance_val_tmp+0.5)*min_space_unit, anchor_two*min_space_unit, sigma/sqrt(2)) - NormalCdf( (M+distance_val_tmp-0.5)*min_space_unit, anchor_two*min_space_unit, sigma/sqrt(2) );
+            } else {
+                anchor_two_seq[ite->first] += NormalCdf( (distance_val_tmp+0.5)*min_space_unit, anchor_two*min_space_unit, sigma/sqrt(2)) - NormalCdf( (distance_val_tmp-0.5)*min_space_unit, anchor_two*min_space_unit, sigma/sqrt(2) );
+            }
+        }
+
+        // Put the two anchor points
+        for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end(); ite++) {
+            smp_pos_init[ite->first] = 0;
+        }
+        for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end(); ite++) {
+            smp_pos_init[ite->first] = 0;
+        }
+        for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end();ite++) {
+            smp_pos_init[ite->first] += anchor_one_seq[ite->first];
+        }
+        for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end();ite++) {
+            smp_pos_init[ite->first] += anchor_two_seq[ite->first];
+        }
+
+        // break even
+        default_random_engine generator;
+        normal_distribution<double> distribution(0, perturb_std);
+        for (int i=0; i<M; i++) {
+            smp_pos_init(i) = smp_pos_init(i) * (1+distribution(generator));
+        }
+
+        // map the initialization onto the convex set
+        // Put the two anchor points
+        for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end();     ite++) {
+            smp_pos_init[ite->first] = 0;
+        }
+        for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end();     ite++) {
+            smp_pos_init[ite->first] = 0;
+        }
+        for (map<int, double>::iterator ite=anchor_one_seq.begin(); ite!=anchor_one_seq.end();     ite++) {
+            smp_pos_init[ite->first] += anchor_one_seq[ite->first];
+        }
+        for (map<int, double>::iterator ite=anchor_two_seq.begin(); ite!=anchor_two_seq.end();     ite++) {
+            smp_pos_init[ite->first] += anchor_two_seq[ite->first];
+        }
+
+        // Project on to the l1-ball with box constraints
+        VectorXd smp_pos_seg_tmp = VectorXd::Zero(valid_idx_vec_exclude.size());
+        for (int i=0; i<valid_idx_vec_exclude.size(); i++) {
+            smp_pos_seg_tmp(i) = smp_pos_init(valid_idx_vec_exclude[i]);
+        }
+
+        smp_pos_seg_tmp = ProjectOntoCvxSet(smp_pos_seg_tmp, num_smp-2);
+        for (int i=0; i<valid_idx_vec_exclude.size(); i++) {
+            smp_pos_init(valid_idx_vec_exclude[i]) = smp_pos_seg_tmp(i);
+        }
+
+        obj_val = ComputeObjFun(smp_pos_init);
+        cout<<"Obj val: "<<obj_val<<endl;
+
+    } else {
+        cout<<"Unknown initialization type."<<endl;
+        abort();
     }
-
-    smp_pos_seg_tmp = ProjectOntoCvxSet(smp_pos_seg_tmp, num_smp-2);
-    for (int i=0; i<valid_idx_vec_exclude.size(); i++) {
-        smp_pos_init(valid_idx_vec_exclude[i]) = smp_pos_seg_tmp(i);
-    }
-
-    obj_val = ComputeObjFun(smp_pos_init);
-    cout<<"Obj val: "<<obj_val<<endl;
 
     cout<<"Initialization finished."<<endl;
 

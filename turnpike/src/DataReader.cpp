@@ -26,6 +26,7 @@ void DataReader::SetParameters() {
 
     if (options.find("num_thread")!=options.end())   {num_thread=(int)options["num_thread"];}
 	if (options.find("num_smp")!=options.end())   {num_smp=(int)options["num_smp"];}
+	if (options.find("init_type")!=options.end())   {init_type=(int)options["init_type"];}
 	if (options.find("max_ite")!=options.end())   {max_ite=(int)options["max_ite"];}
 	if (options.find("max_sg_ite")!=options.end())   {max_sg_ite=(int)options["max_sg_ite"];}
 	if (options.find("min_space_unit")!=options.end()) {min_space_unit=options["min_space_unit"];}

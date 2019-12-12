@@ -25,18 +25,19 @@ void DataReader::SetParameters() {
 	num_thread = omp_get_max_threads();
 
     if (options.find("num_thread")!=options.end())   {num_thread=(int)options["num_thread"];}
-	if (options.find("num_smp")!=options.end())   {num_smp=(int)options["num_smp"];}
-	if (options.find("max_ite")!=options.end())   {max_ite=(int)options["max_ite"];}
-	if (options.find("max_sg_ite")!=options.end())   {max_sg_ite=(int)options["max_sg_ite"];}
-	if (options.find("min_space_unit")!=options.end()) {min_space_unit=options["min_space_unit"];}
-	if (options.find("tau")!=options.end())     {tau=options["tau"];}
-	if (options.find("sigma")!=options.end())     {sigma=options["sigma"];}
-	if (options.find("perturb_std")!=options.end())  {perturb_std=options["perturb_std"];}
-	if (options.find("sg_tol")!=options.end())  {sg_tol=options["sg_tol"];}
-	if (options.find("step_ori")!=options.end())  {step_ori=options["step_ori"];}
-	if (options.find("bkt_rate")!=options.end())  {bkt_rate=options["bkt_rate"];}
-	if (options.find("step_thd")!=options.end())  {step_thd=options["step_thd"];}
-	if (options.find("cvg_thd")!=options.end())   {cvg_thd=options["cvg_thd"];}
+    if (options.find("num_smp")!=options.end())   {num_smp=(int)options["num_smp"];}
+    if (options.find("init_type")!=options.end()) {init_type=(int)options["init_type"];}
+    if (options.find("max_ite")!=options.end())   {max_ite=(int)options["max_ite"];}
+    if (options.find("max_sg_ite")!=options.end())   {max_sg_ite=(int)options["max_sg_ite"];}
+    if (options.find("min_space_unit")!=options.end()) {min_space_unit=options["min_space_unit"];}
+    if (options.find("tau")!=options.end())     {tau=options["tau"];}
+    if (options.find("sigma")!=options.end())     {sigma=options["sigma"];}
+    if (options.find("perturb_std")!=options.end())  {perturb_std=options["perturb_std"];}
+    if (options.find("sg_tol")!=options.end())  {sg_tol=options["sg_tol"];}
+    if (options.find("step_ori")!=options.end())  {step_ori=options["step_ori"];}
+    if (options.find("bkt_rate")!=options.end())  {bkt_rate=options["bkt_rate"];}
+    if (options.find("step_thd")!=options.end())  {step_thd=options["step_thd"];}
+    if (options.find("cvg_thd")!=options.end())   {cvg_thd=options["cvg_thd"];}
 
     cout<<"Minimum space unit:    "<<min_space_unit<<endl;
     cout<<"No. of threads:        "<<num_thread<<endl;
