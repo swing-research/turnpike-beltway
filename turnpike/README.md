@@ -1,7 +1,7 @@
 # Solving the noisy turnpike problem
 
 * This problem is known as `the turnpike problem` or `the partial digest problem`. It tries to reconstruct the locations of a set of points that lie on a **`line`** from their unassigned pairwise diatances.
-![turnpike_illustration](turnpike_illustration.png)
+![turnpike_illustration](turnpike_illustration.png){width=30%}
 
 * This package contains code files to implement the approach described in the following paper.
 ```
