@@ -1,3 +1,4 @@
+#include<chrono>
 #include "uDGP.h"
 
 uDGP::uDGP() {
@@ -327,7 +328,8 @@ void uDGP::Initialization() {
         smp_pos_init = smp_pos_init * sqrt(num_smp*1.0);
 
         // break even
-        default_random_engine generator;
+	unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
+        default_random_engine generator(seed);
         normal_distribution<double> distribution(0, perturb_std);
         for (int i=0; i<M; i++) {
             smp_pos_init(i) = smp_pos_init(i) * (1+distribution(generator));
@@ -364,7 +366,8 @@ void uDGP::Initialization() {
         
     } else if (init_type==2) {  // initialize with random vector
     
-        default_random_engine generator;
+	unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
+        default_random_engine generator(seed);
         normal_distribution<double> distribution(0, perturb_std);
         for (int i=0; i<M; i++) {
             smp_pos_init(i) = abs(distribution(generator));
@@ -471,7 +474,8 @@ void uDGP::Initialization() {
         }
 
         // break even
-        default_random_engine generator;
+	unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
+        default_random_engine generator(seed);
         normal_distribution<double> distribution(0, perturb_std);
         for (int i=0; i<M; i++) {
             smp_pos_init(i) = smp_pos_init(i) * (1+distribution(generator));

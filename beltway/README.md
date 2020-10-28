@@ -1,6 +1,6 @@
 # Solving the noisy beltway problem
 * The beltway problem tries to reconstruct the locations of a set of points that lie on a **`loop`** from their unassigned pairwise diatances.
-![beltway_illustration](beltway_illustration.png)
+![beltway_illustration](beltway_illustration.png){width=30%}
 * This package contains code files to implement the approach described in the following paper.
 ```
 @article{DBLP:journals/corr/abs-1804-02465,
