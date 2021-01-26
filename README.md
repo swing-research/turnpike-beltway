@@ -25,6 +25,7 @@ If you use this package and find it helpful, please cite the above paper. Thanks
     ./turnpike          -- This folder contains files and instructions to solve the turnpike problem.
     ./partial_digestion -- This folder contains files and instructions to run the partial digestion experiment.
     ./beltway           -- This folder contains files and instructions to solve the beltway problem.
+    ./monte_carlo       -- Thi folder contains files and instructions to run the Monte Carlo simulations.
 ```
 ## Usage
 
